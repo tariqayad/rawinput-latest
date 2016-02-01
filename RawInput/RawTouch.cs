@@ -77,100 +77,75 @@ namespace RawInput_dll
             //Debug.WriteLine(_rawBuffer.header.ToString());
 
 
-            dynamic Size = 0;
+            var size = 0;
 
             // Determine Size to be allocated
+            //var dwSiz = 0;
+            //int ret2 = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSiz, Marshal.SizeOf(typeof(Rawinputheader)));
+         dynamic ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero,  ref size, Marshal.SizeOf(typeof(Rawinputheader)));
 
-            dynamic ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, Size, Marshal.SizeOf(typeof(Rawinputheader)));
             if (ret == -1)
             {
                 Console.WriteLine("error");
                 return;
             }
 
-            dynamic SizeToAllocate = Math.Max(Size, Marshal.SizeOf(typeof(RawInput.RAWINPUT_Marshalling)));
-            IntPtr pData = Marshal.AllocHGlobal(SizeToAllocate);
+            int sizeToAllocate = Math.Max(size, Marshal.SizeOf(typeof(RawInput_Marshalling)));
+
+            IntPtr pData = Marshal.AllocHGlobal(sizeToAllocate);
             try
             {
                 //Populate alocated memory
-                ret = GetRawInputData(hRawInput, GetRawInputDataCommand.RID_INPUT, pData, SizeToAllocate, Marshal.SizeOf(typeof(Rawinputheader)));
-                if (ret == -1)
-                    throw new System.ComponentModel.Win32Exception();
-                RAWINPUTHEADER Header = Marshal.PtrToStructure(pData, typeof(API.RawInput.RAWINPUTHEADER));
-                //RAWINPUT starts with RAWINPUTHEADER, so we can do this
-                switch (Header.dwType)
-                {
-                    case DeviceTypes.RIM_TYPEHID:
-                        //As described on page of RAWHID, RAWHID needs special treatement
-                        RAWINPUT_Marshalling raw = Marshal.PtrToStructure(pData, typeof(RAWINPUT_Marshalling));
-                        //Get marshalling version, it contains information about block size and count
-                        API.RAWINPUT_NonMarshalling raw2 = default(API.RAWINPUT_NonMarshalling);
-                        //Do some copying
-                        raw2.header = raw.header;
-                        raw2.hid.dwCount = raw.hid.dwCount;
-                        raw2.hid.dwSizeHid = raw.hid.dwSizeHid;
-                        // ERROR: Not supported in C#: ReDimStatement
+                ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, pData, ref sizeToAllocate, Marshal.SizeOf(typeof(Rawinputheader)));
 
-                        //Allocate array
-                        //Populate the array
-                        Marshal.Copy(pData.ToInt64 + Marshal.SizeOf(typeof(RAWINPUTHEADER)) + Marshal.SizeOf(typeof(RAWHID_Marshalling)), raw2.hid.bRawData, 0, raw.hid.dwCount * raw.hid.dwSizeHid);
-                        return raw2;
+                if (ret == -1)
+                {
+                    throw new System.ComponentModel.Win32Exception();
+                }
+
+                Rawinputheader header = (Rawinputheader) Marshal.PtrToStructure(pData, typeof(Rawinputheader));
+
+                //RAWINPUT starts with RAWINPUTHEADER, so we can do this
+                RawInputDeviceType type = (RawInputDeviceType)header.dwType;
+                switch (type)
+                {
+                    case RawInputDeviceType.RIM_TYPEHID:
+                        {
+                            //As described on page of RAWHID, RAWHID needs special treatement
+                            RawInput_Marshalling raw = (RawInput_Marshalling) Marshal.PtrToStructure(pData, typeof(RawInput_Marshalling));
+
+                            //Get marshalling version, it contains information about block size and count
+                            RawInput_NonMarshalling raw2 = default(RawInput_NonMarshalling);
+
+                            //Do some copying
+                            raw2.header = raw.header;
+                            raw2.hid.dwCount = raw.hid.dwCount;
+
+                            raw2.hid.dwSizHid = raw.hid.dwSizHid;
+
+                            var numBytes =  raw.hid.dwCount * raw.hid.dwSizHid;
+                            byte[] data = new byte[numBytes];
+
+                            // ERROR: Not supported in C#: ReDimStatement
+
+                            //Allocate array
+                            //Populate the array
+                            IntPtr rawData = (IntPtr) pData.ToInt64() + Marshal.SizeOf(typeof(Rawinputheader)) + Marshal.SizeOf(typeof(Rawhid_Marshalling));
+                            Marshal.Copy(rawData, data, 0, (int)numBytes);
+                            //return raw2;
+                            break;
+                        }
                     default:
-                        //No additional processing is needed
-                        return (RAWINPUT_Marshalling)Marshal.PtrToStructure(pData, typeof(RAWINPUT_Marshalling));
+                        {
+                            //No additional processing is needed
+                            var x = (RawInput_Marshalling)Marshal.PtrToStructure(pData, typeof(RawInput_Marshalling));
+                            break;
+                        }
                 }
             }
             finally
             {
                 Marshal.FreeHGlobal(pData);
-            }
-
-
-            var dwSize = 0;
-            Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader)));
-
-
-            if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader))))
-            {
-                Debug.WriteLine("Error getting the rawinput buffer");
-                return;
-            }
-
-            if (_rawBuffer.header.dwType == (uint) RawInputDeviceType.RIM_TYPEHID)
-            {
-                List<byte> data = new List<byte>();
-                do
-                {
-                    Rawhid hid = _rawBuffer.data.hid;
-                    data.Add(hid.bRawData);
-
-                    dwSize = (int)hid.dwSizHid;
-
-                    Console.WriteLine($"DWSize:{dwSize} dwSizHid:{hid.dwSizHid} dwCount:{hid.dwCount} dwRawData:{hid.bRawData}");
-
-                    if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader))))
-                    {
-
-                    }
-
-                }
-                while (dwSize > 0);
-
-                int x =  _rawBuffer.data.mouse.lLastX;
-                //Console.WriteLine($"data: dwcount- {_rawBuffer.data.hid.dwCount}, dwsize- {_rawBuffer.data.hid.dwSizHid}, byte {_rawBuffer.data.hid.bRawData.ToString()} ");
-                //Console.WriteLine($"{x}");
-                if (x < this.PrevX)
-                {
-                    this.Guesture = "swipe left";
-                }
-                else
-                {
-                    this.Guesture = "unknown";
-                }
-
-                this.PrevX = x;
-
-                Console.WriteLine($"{this.Guesture} : {x} < {Win32.TouchDevice.Width}");
             }
         }
 
@@ -328,5 +303,53 @@ namespace RawInput_dll
 
                     break;
 
+
+
+            var dwSize = 0;
+            Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader)));
+
+
+            if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader))))
+            {
+                Debug.WriteLine("Error getting the rawinput buffer");
+                return;
+            }
+
+            if (_rawBuffer.header.dwType == (uint) RawInputDeviceType.RIM_TYPEHID)
+            {
+                List<byte> data = new List<byte>();
+                do
+                {
+                    Rawhid_NonMarshalling hid = _rawBuffer.data.hid;
+                    data.Add(hid.bRawData);
+
+                    dwSize = (int)hid.dwSizHid;
+
+                    Console.WriteLine($"DWSize:{dwSize} dwSizHid:{hid.dwSizHid} dwCount:{hid.dwCount} dwRawData:{hid.bRawData}");
+
+                    if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader))))
+                    {
+
+                    }
+
+                }
+                while (dwSize > 0);
+
+                int x =  _rawBuffer.data.mouse.lLastX;
+                //Console.WriteLine($"data: dwcount- {_rawBuffer.data.hid.dwCount}, dwsize- {_rawBuffer.data.hid.dwSizHid}, byte {_rawBuffer.data.hid.bRawData.ToString()} ");
+                //Console.WriteLine($"{x}");
+                if (x < this.PrevX)
+                {
+                    this.Guesture = "swipe left";
+                }
+                else
+                {
+                    this.Guesture = "unknown";
+                }
+
+                this.PrevX = x;
+
+                Console.WriteLine($"{this.Guesture} : {x} < {Win32.TouchDevice.Width}");
+            }
 
     */

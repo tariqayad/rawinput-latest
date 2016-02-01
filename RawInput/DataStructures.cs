@@ -111,24 +111,15 @@ namespace RawInput_dll
         // ReSharper restore UnusedField.Compiler
     }
 
-    [StructLayout(LayoutKind.Sequential, )]
-    public struct RAWINPUTHEADER
-    {
-        public DeviceTypes dwType;
-        public int dwSize;
-        public IntPtr hDevice;
-        public Int32 wParam;
-    
-    }
 
     /****************************************/
     [StructLayout(LayoutKind.Explicit)]
-    public struct RAWINPUT_Marshalling
+    public struct RawInput_Marshalling
     {
         //ASAP: MSDN
         [FieldOffset(0)]
         public Rawinputheader header;
-        [FieldOffset(sizeof(Rawinputheader))]
+        [FieldOffset(Rawinputheader.Size)]
         public Rawmouse mouse;
         [FieldOffset(Rawinputheader.Size)]
         public Rawkeyboard keyboard;
@@ -136,7 +127,7 @@ namespace RawInput_dll
         public Rawhid_Marshalling hid;
     }
 
-    public struct RAWINPUT_NonMarshalling
+    public struct RawInput_NonMarshalling
     {
         public Rawinputheader header;
         public Rawmouse mouse;
@@ -282,7 +273,7 @@ namespace RawInput_dll
         public Rawkeyboard keyboard;
 
         [FieldOffset(16 + 8)]
-        public Rawhid hid;
+        public Rawhid_NonMarshalling hid;
     }
 
     [StructLayout(LayoutKind.Sequential)]
