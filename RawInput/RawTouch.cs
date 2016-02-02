@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -23,8 +24,6 @@ namespace RawInput_dll
         private TouchDevice touchDevice;
 
         public int PrevX { get; set; }
-
-        static InputData _rawBuffer;
 
         // size of GESTURECONFIG structure
         private int _gestureConfigSize;
@@ -70,19 +69,18 @@ namespace RawInput_dll
         }
 
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="hdevice"></param>
         public void ProcessRawInput(IntPtr hdevice)
         {
-            //Debug.WriteLine(_rawBuffer.data.keyboard.ToString());
-            //Debug.WriteLine(_rawBuffer.data.hid.ToString());
-            //Debug.WriteLine(_rawBuffer.header.ToString());
-
-
             var size = 0;
 
             // Determine Size to be allocated
             //var dwSiz = 0;
             //int ret2 = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSiz, Marshal.SizeOf(typeof(Rawinputheader)));
-         dynamic ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero,  ref size, Marshal.SizeOf(typeof(Rawinputheader)));
+            dynamic ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero,  ref size, Marshal.SizeOf(typeof(Rawinputheader)));
 
             if (ret == -1)
             {
@@ -132,6 +130,28 @@ namespace RawInput_dll
                             //Populate the array
                             IntPtr rawData = (IntPtr) pData.ToInt64() + Marshal.SizeOf(typeof(Rawinputheader)) + Marshal.SizeOf(typeof(Rawhid_Marshalling));
                             Marshal.Copy(rawData, data, 0, (int)numBytes);
+
+
+                            // Extract X & Y
+                            byte[] zBytes = new byte[4];
+                            Buffer.BlockCopy(data, 2, zBytes, 0, 4);
+                            int z = BitConverter.ToInt32(zBytes, 0);
+
+                            byte[] xBytes = new byte[4];
+                            Buffer.BlockCopy(data, 6, xBytes, 0, 4);
+                            byte[] yBytes = new byte[4];
+                            Buffer.BlockCopy(data, 10, yBytes, 0, 4);
+
+
+                            int x = BitConverter.ToInt32(xBytes, 0);
+                            int y = BitConverter.ToInt32(yBytes, 0);
+
+
+                            Console.WriteLine($"X: {x}\tY: {y}\tZ : {z}");
+                            if (TouchActivated != null)
+                            {
+                                TouchActivated(this, new RawInputEventArg(x, y));
+                            }
                             //return raw2;
                             break;
                         }
@@ -148,6 +168,8 @@ namespace RawInput_dll
                 Marshal.FreeHGlobal(pData);
             }
         }
+
+
 
         public bool DecodeGesture(ref Message m)
         {

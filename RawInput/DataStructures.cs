@@ -176,13 +176,6 @@ namespace RawInput_dll
         }
     }
 
-    struct DigitizerData
-    {
-        byte usb_report_id;
-        //TouchData touch[8];
-        byte active_touch_count;
-    };
-
     [StructLayout(LayoutKind.Sequential)]
     public struct Rawhid_NonMarshalling
     {

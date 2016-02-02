@@ -205,58 +205,59 @@ namespace RawInput_dll
 			throw new Win32Exception(Marshal.GetLastWin32Error());
 		}
 
-		public void ProcessRawInput(IntPtr hdevice)
-		{
-			//Debug.WriteLine(_rawBuffer.data.keyboard.ToString());
-			//Debug.WriteLine(_rawBuffer.data.hid.ToString());
-			//Debug.WriteLine(_rawBuffer.header.ToString());
 
-			if (_deviceList.Count == 0) return;
+  //      public void ProcessRawInput(IntPtr hdevice)
+		//{
+		//	//Debug.WriteLine(_rawBuffer.data.keyboard.ToString());
+		//	//Debug.WriteLine(_rawBuffer.data.hid.ToString());
+		//	//Debug.WriteLine(_rawBuffer.header.ToString());
 
-			var dwSize = 0;
-			Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader)));
+		//	if (_deviceList.Count == 0) return;
 
-			if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof (Rawinputheader))))
-			{
-				Debug.WriteLine("Error getting the rawinput buffer");
-				return;
-			}
+		//	var dwSize = 0;
+		//	Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSize, Marshal.SizeOf(typeof(Rawinputheader)));
 
-			int virtualKey = _rawBuffer.data.keyboard.VKey;
-			int makeCode = _rawBuffer.data.keyboard.Makecode;
-			int flags = _rawBuffer.data.keyboard.Flags;
+		//	if (dwSize != Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, out _rawBuffer, ref dwSize, Marshal.SizeOf(typeof (Rawinputheader))))
+		//	{
+		//		Debug.WriteLine("Error getting the rawinput buffer");
+		//		return;
+		//	}
 
-			if (virtualKey == Win32.KEYBOARD_OVERRUN_MAKE_CODE) return;
+		//	int virtualKey = _rawBuffer.data.keyboard.VKey;
+		//	int makeCode = _rawBuffer.data.keyboard.Makecode;
+		//	int flags = _rawBuffer.data.keyboard.Flags;
 
-			var isE0BitSet = ((flags & Win32.RI_KEY_E0) != 0);
+		//	if (virtualKey == Win32.KEYBOARD_OVERRUN_MAKE_CODE) return;
 
-			KeyPressEvent keyPressEvent;
+		//	var isE0BitSet = ((flags & Win32.RI_KEY_E0) != 0);
 
-			if (_deviceList.ContainsKey(_rawBuffer.header.hDevice))
-			{
-				lock (_padLock)
-				{
-					keyPressEvent = _deviceList[_rawBuffer.header.hDevice];
-				}
-			}
-			else
-			{
-				Debug.WriteLine("Handle: {0} was not in the device list.", _rawBuffer.header.hDevice);
-				return;
-			}
+		//	KeyPressEvent keyPressEvent;
 
-			var isBreakBitSet = ((flags & Win32.RI_KEY_BREAK) != 0);
+		//	if (_deviceList.ContainsKey(_rawBuffer.header.hDevice))
+		//	{
+		//		lock (_padLock)
+		//		{
+		//			keyPressEvent = _deviceList[_rawBuffer.header.hDevice];
+		//		}
+		//	}
+		//	else
+		//	{
+		//		Debug.WriteLine("Handle: {0} was not in the device list.", _rawBuffer.header.hDevice);
+		//		return;
+		//	}
 
-			keyPressEvent.KeyPressState = isBreakBitSet ? "BREAK" : "MAKE";
-			keyPressEvent.Message = _rawBuffer.data.keyboard.Message;
-			keyPressEvent.VKeyName = KeyMapper.GetKeyName(VirtualKeyCorrection(virtualKey, isE0BitSet, makeCode)).ToUpper();
-			keyPressEvent.VKey = virtualKey;
+		//	var isBreakBitSet = ((flags & Win32.RI_KEY_BREAK) != 0);
 
-			if (KeyPressed != null)
-			{
-				KeyPressed(this, new RawInputEventArg(keyPressEvent));
-			}
-		}
+		//	keyPressEvent.KeyPressState = isBreakBitSet ? "BREAK" : "MAKE";
+		//	keyPressEvent.Message = _rawBuffer.data.keyboard.Message;
+		//	keyPressEvent.VKeyName = KeyMapper.GetKeyName(VirtualKeyCorrection(virtualKey, isE0BitSet, makeCode)).ToUpper();
+		//	keyPressEvent.VKey = virtualKey;
+
+		//	if (KeyPressed != null)
+		//	{
+		//		KeyPressed(this, new RawInputEventArg(keyPressEvent));
+		//	}
+		//}
 
 		private static int VirtualKeyCorrection(int virtualKey, bool isE0BitSet, int makeCode)
 		{

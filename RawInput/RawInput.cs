@@ -7,34 +7,28 @@ namespace RawInput_dll
 {
     public class RawInput : NativeWindow
     {
-        static RawKeyboard _keyboardDriver;
         static RawTouch _touchDriver;
 
         readonly IntPtr _devNotifyHandle;
         static readonly Guid DeviceInterfaceHid = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030");
         private PreMessageFilter _filter;
 
-        public  event RawKeyboard.DeviceEventHandler KeyPressed
+        public  event RawTouch.DeviceEventHandler TouchActivated
         {
             add
             {
-                if (_keyboardDriver != null)
+                if (_touchDriver != null)
                 {
-                    _keyboardDriver.KeyPressed += value;
+                    _touchDriver.TouchActivated += value;
                 }
             }
             remove
             {
-                if (_keyboardDriver != null)
+                if (_touchDriver != null)
                 {
-                    _keyboardDriver.KeyPressed -= value;
+                    _touchDriver.TouchActivated -= value;
                 }
             }
-        }
-
-        public int NumberOfKeyboards
-        {
-            get { return _keyboardDriver.NumberOfKeyboards; }
         }
 
         public void AddMessageFilter()
@@ -102,19 +96,7 @@ namespace RawInput_dll
         {
             //Console.WriteLine(message.Msg);
             switch (message.Msg)
-            {
-                //case Win32.WM_INPUT:
-                //    {
-                //        _keyboardDriver.ProcessRawInput(message.LParam);
-                //    }
-                //    break;
-
-                //case Win32.WM_USB_DEVICECHANGE:
-                //    {
-                //        Debug.WriteLine("USB Device Arrival / Removal");
-                //        _keyboardDriver.EnumerateDevices();
-                //    }
-                //    break;
+            {           
                 case Win32.WM_INPUT:
                     {
                        // Console.WriteLine("wm_input");

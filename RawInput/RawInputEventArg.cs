@@ -4,11 +4,13 @@ namespace RawInput_dll
 {
     public class RawInputEventArg : EventArgs
     {
-        public RawInputEventArg(KeyPressEvent arg)
+        public RawInputEventArg(int x, int y)
         {
-            KeyPressEvent = arg;
+            this.X = x;
+            this.Y = y;
         }
-        
-        public KeyPressEvent KeyPressEvent { get; private set; }
+
+        public int X { get; private set; }
+        public int Y { get; private set; }
     }
 }
