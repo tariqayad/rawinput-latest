@@ -8,14 +8,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace RawInput_dll
 {
     public sealed class RawTouch
     {
-        private readonly Dictionary<IntPtr, KeyPressEvent> _deviceList = new Dictionary<IntPtr, KeyPressEvent>();
         public delegate void DeviceEventHandler(object sender, RawInputEventArg e);
         public event DeviceEventHandler TouchActivated;
 
@@ -80,7 +78,7 @@ namespace RawInput_dll
             // Determine Size to be allocated
             //var dwSiz = 0;
             //int ret2 = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero, ref dwSiz, Marshal.SizeOf(typeof(Rawinputheader)));
-            dynamic ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero,  ref size, Marshal.SizeOf(typeof(Rawinputheader)));
+            var ret = Win32.GetRawInputData(hdevice, DataCommand.RID_INPUT, IntPtr.Zero,  ref size, Marshal.SizeOf(typeof(Rawinputheader)));
 
             if (ret == -1)
             {
@@ -128,15 +126,12 @@ namespace RawInput_dll
 
                             //Allocate array
                             //Populate the array
-                            IntPtr rawData = (IntPtr) pData.ToInt64() + Marshal.SizeOf(typeof(Rawinputheader)) + Marshal.SizeOf(typeof(Rawhid_Marshalling));
+                            IntPtr rawData =  new IntPtr(
+                                pData.ToInt64() + Marshal.SizeOf(typeof(Rawinputheader)) + Marshal.SizeOf(typeof(Rawhid_Marshalling)));
+
                             Marshal.Copy(rawData, data, 0, (int)numBytes);
 
-
                             // Extract X & Y
-                            byte[] zBytes = new byte[4];
-                            Buffer.BlockCopy(data, 2, zBytes, 0, 4);
-                            int z = BitConverter.ToInt32(zBytes, 0);
-
                             byte[] xBytes = new byte[4];
                             Buffer.BlockCopy(data, 6, xBytes, 0, 4);
                             byte[] yBytes = new byte[4];
@@ -147,7 +142,7 @@ namespace RawInput_dll
                             int y = BitConverter.ToInt32(yBytes, 0);
 
 
-                            Console.WriteLine($"X: {x}\tY: {y}\tZ : {z}");
+                            Console.WriteLine($"X: {x}\tY: {y}");
                             if (TouchActivated != null)
                             {
                                 TouchActivated(this, new RawInputEventArg(x, y));

@@ -11,7 +11,6 @@ namespace RawInput_dll
 
         readonly IntPtr _devNotifyHandle;
         static readonly Guid DeviceInterfaceHid = new Guid("4D1E55B2-F16F-11CF-88CB-001111000030");
-        private PreMessageFilter _filter;
 
         public  event RawTouch.DeviceEventHandler TouchActivated
         {
@@ -31,21 +30,7 @@ namespace RawInput_dll
             }
         }
 
-        public void AddMessageFilter()
-        {
-            if (null != _filter) return;
-
-            _filter = new PreMessageFilter();
-            Application.AddMessageFilter(_filter);
-        }
-
-        private void RemoveMessageFilter()
-        {
-            if (null == _filter) return;
-
-            Application.RemoveMessageFilter(_filter);
-        }
-
+  
         public RawInput(IntPtr parentHandle, bool captureOnlyInForeground)
         {
             AssignHandle(parentHandle);
@@ -111,7 +96,6 @@ namespace RawInput_dll
         ~RawInput()
         {
             Win32.UnregisterDeviceNotification(_devNotifyHandle);
-            RemoveMessageFilter();
         }
     }
 }

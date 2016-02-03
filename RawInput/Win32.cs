@@ -198,28 +198,7 @@ namespace RawInput_dll
                             // Console.WriteLine($"{VendorID} : {ProductID}");
                         }
                     }
-
-                    if (rid.dwType == DeviceType.RimTypekeyboard || rid.dwType == DeviceType.RimTypeHid)
-                    {
-                        Console.WriteLine($"{deviceName}");
-                        var deviceDesc = GetDeviceDescription(deviceName);
-
-                        var dInfo = new KeyPressEvent
-                        {
-                            DeviceName = Marshal.PtrToStringAnsi(pData),
-                            DeviceHandle = rid.hDevice,
-                            DeviceType = GetDeviceType(rid.dwType),
-                            Name = deviceDesc,
-                            Source = keyboardNumber++.ToString(CultureInfo.InvariantCulture)
-                        };
-
-                        sw.WriteLine(dInfo.ToString());
-                        sw.WriteLine(di.ToString());
-                        sw.WriteLine(di.KeyboardInfo.ToString());
-                        sw.WriteLine(di.HIDInfo.ToString());
-                        //sw.WriteLine(di.MouseInfo.ToString());
-                        sw.WriteLine("=========================================================================================================");
-                    }
+                                       
 
                     Marshal.FreeHGlobal(pData);
                 }
